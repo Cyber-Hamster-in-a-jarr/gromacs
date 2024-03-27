@@ -157,7 +157,10 @@ static void prepareRerunState(const t_trxframe&          rerunFrame,
 {
     auto x      = makeArrayRef(globalState->x);
     auto rerunX = arrayRefFromArray(reinterpret_cast<gmx::RVec*>(rerunFrame.x), globalState->numAtoms());
+    auto v      = makeArrayRef(globalState->v);
+    auto rerunV = arrayRefFromArray(reinterpret_cast<gmx::RVec*>(rerunFrame.v), globalState->numAtoms());
     std::copy(rerunX.begin(), rerunX.end(), x.begin());
+    std::copy(rerunV.begin(), rerunV.end(), v.begin()); 
     copy_mat(rerunFrame.box, globalState->box);
 
     if (constructVsites)
@@ -181,7 +184,7 @@ void gmx::LegacySimulator::do_rerun()
     bool              isLastStep               = false;
     bool              doFreeEnergyPerturbation = false;
     unsigned int      force_flags;
-    tensor            force_vir, shake_vir, total_vir, pres;
+    tensor            force_vir = { { 0 } }, shake_vir = { { 0 } }, total_vir = { { 0 } }, pres = { { 0 } };
     t_trxstatus*      status = nullptr;
     rvec              mu_tot;
     t_trxframe        rerun_fr;
@@ -302,7 +305,7 @@ void gmx::LegacySimulator::do_rerun()
                                    *ir,
                                    pullWork_,
                                    mdoutf_get_fp_dhdl(outf),
-                                   true,
+                                   false,
                                    StartingBehavior::NewSimulation,
                                    simulationsShareState,
                                    mdModulesNotifiers_);
@@ -373,7 +376,7 @@ void gmx::LegacySimulator::do_rerun()
     int64_t step_rel = 0;
 
     {
-        int    cglo_flags   = CGLO_GSTAT;
+        int    cglo_flags   = CGLO_GSTAT | CGLO_TEMPERATURE;
         bool   bSumEkinhOld = false;
         t_vcm* vcm          = nullptr;
         compute_globals(gstat,
@@ -440,7 +443,7 @@ void gmx::LegacySimulator::do_rerun()
     rerun_fr.natoms = 0;
     if (MAIN(cr_))
     {
-        isLastStep = !read_first_frame(oenv_, &status, opt2fn("-rerun", nFile_, fnm_), &rerun_fr, TRX_NEED_X);
+        isLastStep = !read_first_frame(oenv_, &status, opt2fn("-rerun", nFile_, fnm_), &rerun_fr, TRX_NEED_X | TRX_NEED_V);
         if (rerun_fr.natoms != topGlobal_.natoms)
         {
             gmx_fatal(FARGS,
@@ -757,7 +760,7 @@ void gmx::LegacySimulator::do_rerun()
             t_vcm*              vcm              = nullptr;
             SimulationSignaller signaller(&signals, cr_, ms_, doInterSimSignal, doIntraSimSignal);
 
-            int cglo_flags = CGLO_GSTAT | CGLO_ENERGY;
+            int cglo_flags = CGLO_GSTAT | CGLO_ENERGY | CGLO_TEMPERATURE | CGLO_PRESSURE;
             compute_globals(gstat,
                             cr_,
                             ir,
@@ -794,6 +797,7 @@ void gmx::LegacySimulator::do_rerun()
         if (MAIN(cr_))
         {
             const bool bCalcEnerStep = true;
+            enerd_->term[F_ETOT] = enerd_->term[F_EPOT] + enerd_->term[F_EKIN];
             energyOutput.addDataAtEnergyStep(doFreeEnergyPerturbation,
                                              bCalcEnerStep,
                                              t,

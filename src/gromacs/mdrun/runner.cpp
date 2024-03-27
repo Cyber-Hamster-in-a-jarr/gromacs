@@ -1201,20 +1201,20 @@ int Mdrunner::mdrunner()
     if (SIMMAIN(cr))
     {
         /* In rerun, set velocities to zero if present */
-        if (doRerun && globalState->hasEntry(StateEntry::V))
-        {
-            // rerun does not use velocities
-            GMX_LOG(mdlog.info)
-                    .asParagraph()
-                    .appendText(
-                            "Rerun trajectory contains velocities. Rerun does only evaluate "
-                            "potential energy and forces. The velocities will be ignored.");
-            for (int i = 0; i < globalState->numAtoms(); i++)
-            {
-                clear_rvec(globalState->v[i]);
-            }
-            globalState->setFlags(globalState->flags() & ~enumValueToBitMask(StateEntry::V));
-        }
+        // if (doRerun && globalState->hasEntry(StateEntry::V))
+        // {
+        //     // rerun does not use velocities
+        //     GMX_LOG(mdlog.info)
+        //             .asParagraph()
+        //             .appendText(
+        //                     "Rerun trajectory contains velocities. Rerun does only evaluate "
+        //                     "potential energy and forces. The velocities will be ignored.");
+        //     for (int i = 0; i < globalState->numAtoms(); i++)
+        //     {
+        //         clear_rvec(globalState->v[i]);
+        //     }
+        //     globalState->setFlags(globalState->flags() & ~enumValueToBitMask(StateEntry::V));
+        // }
 
         /* now make sure the state is initialized and propagated */
         set_state_entries(globalState.get(), inputrec.get(), useModularSimulator);
