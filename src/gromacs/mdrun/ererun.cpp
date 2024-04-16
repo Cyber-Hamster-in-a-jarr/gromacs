@@ -157,7 +157,10 @@ static void prepareRerunState(const t_trxframe&          rerunFrame,
 {
     auto x      = makeArrayRef(globalState->x);
     auto rerunX = arrayRefFromArray(reinterpret_cast<gmx::RVec*>(rerunFrame.x), globalState->numAtoms());
+    auto v      = makeArrayRef(globalState->v);
+    auto rerunV = arrayRefFromArray(reinterpret_cast<gmx::RVec*>(rerunFrame.v), globalState->numAtoms());
     std::copy(rerunX.begin(), rerunX.end(), x.begin());
+    std::copy(rerunV.begin(), rerunV.end(), v.begin()); 
     copy_mat(rerunFrame.box, globalState->box);
 
     if (constructVsites)
@@ -168,7 +171,7 @@ static void prepareRerunState(const t_trxframe&          rerunFrame,
     }
 }
 
-void gmx::LegacySimulator::do_rerun()
+void gmx::LegacySimulator::do_extended_rerun()
 {
     // TODO Historically, the EM and MD "integrators" used different
     // names for the t_inputrec *parameter, but these must have the
@@ -181,7 +184,7 @@ void gmx::LegacySimulator::do_rerun()
     bool              isLastStep               = false;
     bool              doFreeEnergyPerturbation = false;
     unsigned int      force_flags;
-    tensor            force_vir, shake_vir, total_vir, pres;
+    tensor            force_vir = { { 0 } }, shake_vir = { { 0 } }, total_vir = { { 0 } }, pres = { { 0 } };
     t_trxstatus*      status = nullptr;
     rvec              mu_tot;
     t_trxframe        rerun_fr;
@@ -199,9 +202,8 @@ void gmx::LegacySimulator::do_rerun()
     GMX_LOG(mdLog_.info)
             .asParagraph()
             .appendText(
-                    "Note that it is planned that the command gmx mdrun -rerun will "
-                    "be available in a different form in a future version of GROMACS, "
-                    "e.g. gmx rerun -f.");
+                    "This is an extended rerun that recalculates all quantities as in full simulations.\n"
+                    "Frames without velocities will be skipped!\n");
 
     if (ir->efep != FreeEnergyPerturbationType::No
         && (mdAtoms_->mdatoms()->nMassPerturbed > 0 || (constr_ && constr_->havePerturbedConstraints())))
@@ -249,14 +251,14 @@ void gmx::LegacySimulator::do_rerun()
     /* Rerun can't work if an output file name is the same as the input file name.
      * If this is the case, the user will get an error telling them what the issue is.
      */
-    if (strcmp(opt2fn("-rerun", nFile_, fnm_), opt2fn("-o", nFile_, fnm_)) == 0
-        || strcmp(opt2fn("-rerun", nFile_, fnm_), opt2fn("-x", nFile_, fnm_)) == 0)
+    if (strcmp(opt2fn("-ererun", nFile_, fnm_), opt2fn("-o", nFile_, fnm_)) == 0
+        || strcmp(opt2fn("-ererun", nFile_, fnm_), opt2fn("-x", nFile_, fnm_)) == 0)
     {
         gmx_fatal(FARGS,
-                  "When using mdrun -rerun, the name of the input trajectory file "
+                  "When using mdrun -ererun, the name of the input trajectory file "
                   "%s cannot be identical to the name of an output file (whether "
                   "given explicitly with -o or -x, or by default)",
-                  opt2fn("-rerun", nFile_, fnm_));
+                  opt2fn("-ererun", nFile_, fnm_));
     }
 
     /* Settings for rerun */
@@ -302,7 +304,7 @@ void gmx::LegacySimulator::do_rerun()
                                    *ir,
                                    pullWork_,
                                    mdoutf_get_fp_dhdl(outf),
-                                   true,
+                                   false,
                                    StartingBehavior::NewSimulation,
                                    simulationsShareState,
                                    mdModulesNotifiers_);
@@ -373,7 +375,7 @@ void gmx::LegacySimulator::do_rerun()
     int64_t step_rel = 0;
 
     {
-        int    cglo_flags   = CGLO_GSTAT;
+        int    cglo_flags   = CGLO_GSTAT | CGLO_TEMPERATURE;
         bool   bSumEkinhOld = false;
         t_vcm* vcm          = nullptr;
         compute_globals(gstat,
@@ -406,10 +408,10 @@ void gmx::LegacySimulator::do_rerun()
     if (MAIN(cr_))
     {
         fprintf(stderr,
-                "starting md rerun '%s', reading coordinates from"
-                " input trajectory '%s'\n\n",
+                "starting md extended rerun '%s', reading coordinates and velocities from"
+                " input trajectory '%s'\nFrames without velocities will be skipped!\n\n",
                 *(topGlobal_.name),
-                opt2fn("-rerun", nFile_, fnm_));
+                opt2fn("-ererun", nFile_, fnm_));
         if (mdrunOptions_.verbose)
         {
             fprintf(stderr,
@@ -440,7 +442,7 @@ void gmx::LegacySimulator::do_rerun()
     rerun_fr.natoms = 0;
     if (MAIN(cr_))
     {
-        isLastStep = !read_first_frame(oenv_, &status, opt2fn("-rerun", nFile_, fnm_), &rerun_fr, TRX_NEED_X);
+        isLastStep = !read_first_frame(oenv_, &status, opt2fn("-ererun", nFile_, fnm_), &rerun_fr, TRX_NEED_X | TRX_NEED_V);
         if (rerun_fr.natoms != topGlobal_.natoms)
         {
             gmx_fatal(FARGS,
@@ -555,7 +557,7 @@ void gmx::LegacySimulator::do_rerun()
             if (constructVsites && haveDDAtomOrdering(*cr_))
             {
                 gmx_fatal(FARGS,
-                          "Vsite recalculation with -rerun is not implemented with domain "
+                          "Vsite recalculation with -ererun is not implemented with domain "
                           "decomposition, "
                           "use a single rank");
             }
@@ -757,7 +759,7 @@ void gmx::LegacySimulator::do_rerun()
             t_vcm*              vcm              = nullptr;
             SimulationSignaller signaller(&signals, cr_, ms_, doInterSimSignal, doIntraSimSignal);
 
-            int cglo_flags = CGLO_GSTAT | CGLO_ENERGY;
+            int cglo_flags = CGLO_GSTAT | CGLO_ENERGY | CGLO_TEMPERATURE | CGLO_PRESSURE;
             compute_globals(gstat,
                             cr_,
                             ir,
@@ -794,6 +796,7 @@ void gmx::LegacySimulator::do_rerun()
         if (MAIN(cr_))
         {
             const bool bCalcEnerStep = true;
+            enerd_->term[F_ETOT] = enerd_->term[F_EPOT] + enerd_->term[F_EKIN];
             energyOutput.addDataAtEnergyStep(doFreeEnergyPerturbation,
                                              bCalcEnerStep,
                                              t,

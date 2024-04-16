@@ -910,6 +910,7 @@ int Mdrunner::mdrunner()
     /* TODO: inputrec should tell us whether we use an algorithm, not a file option */
     const bool doEssentialDynamics = opt2bSet("-ei", filenames.size(), filenames.data());
     const bool doRerun             = mdrunOptions.rerun;
+    const bool doERerun             = mdrunOptions.ererun;
 
     // Handle task-assignment related user options.
     EmulateGpuNonbonded emulateGpuNonbonded =
@@ -1005,7 +1006,7 @@ int Mdrunner::mdrunner()
                     userGpuTaskAssignment,
                     emulateGpuNonbonded,
                     canUseGpuForNonbonded,
-                    gpuAccelerationOfNonbondedIsUseful(mdlog, *inputrec, GMX_THREAD_MPI, doRerun),
+                    gpuAccelerationOfNonbondedIsUseful(mdlog, *inputrec, GMX_THREAD_MPI, doRerun || doERerun),
                     mdrunOptions.reproducible,
                     hw_opt.nthreads_tmpi);
             useGpuForPme = decideWhetherToUseGpusForPmeWithThreadMpi(useGpuForNonbonded,
@@ -1085,7 +1086,7 @@ int Mdrunner::mdrunner()
                 userGpuTaskAssignment,
                 emulateGpuNonbonded,
                 canUseGpuForNonbonded,
-                gpuAccelerationOfNonbondedIsUseful(mdlog, *inputrec, !GMX_THREAD_MPI, doRerun),
+                gpuAccelerationOfNonbondedIsUseful(mdlog, *inputrec, !GMX_THREAD_MPI, doRerun || doERerun),
                 mdrunOptions.reproducible,
                 gpusWereDetected);
         useGpuForPme    = decideWhetherToUseGpusForPme(useGpuForNonbonded,
@@ -1119,7 +1120,7 @@ int Mdrunner::mdrunner()
 
     const bool useModularSimulator = checkUseModularSimulator(false,
                                                               inputrec.get(),
-                                                              doRerun,
+                                                              doRerun || doERerun,
                                                               mtop,
                                                               ms,
                                                               replExParams,
@@ -1201,20 +1202,20 @@ int Mdrunner::mdrunner()
     if (SIMMAIN(cr))
     {
         /* In rerun, set velocities to zero if present */
-        // if (doRerun && globalState->hasEntry(StateEntry::V))
-        // {
-        //     // rerun does not use velocities
-        //     GMX_LOG(mdlog.info)
-        //             .asParagraph()
-        //             .appendText(
-        //                     "Rerun trajectory contains velocities. Rerun does only evaluate "
-        //                     "potential energy and forces. The velocities will be ignored.");
-        //     for (int i = 0; i < globalState->numAtoms(); i++)
-        //     {
-        //         clear_rvec(globalState->v[i]);
-        //     }
-        //     globalState->setFlags(globalState->flags() & ~enumValueToBitMask(StateEntry::V));
-        // }
+        if (doRerun && globalState->hasEntry(StateEntry::V))
+        {
+            // rerun does not use velocities
+            GMX_LOG(mdlog.info)
+                    .asParagraph()
+                    .appendText(
+                            "Rerun trajectory contains velocities. Rerun does only evaluate "
+                            "potential energy and forces. The velocities will be ignored.");
+            for (int i = 0; i < globalState->numAtoms(); i++)
+            {
+                clear_rvec(globalState->v[i]);
+            }
+            globalState->setFlags(globalState->flags() & ~enumValueToBitMask(StateEntry::V));
+        }
 
         /* now make sure the state is initialized and propagated */
         set_state_entries(globalState.get(), inputrec.get(), useModularSimulator);
@@ -1253,11 +1254,11 @@ int Mdrunner::mdrunner()
 #endif
     }
 
-    if (doRerun && (EI_ENERGY_MINIMIZATION(inputrec->eI) || IntegrationAlgorithm::NM == inputrec->eI))
+    if ((doRerun || doERerun) && (EI_ENERGY_MINIMIZATION(inputrec->eI) || IntegrationAlgorithm::NM == inputrec->eI))
     {
         gmx_fatal(FARGS,
                   "The .mdp file specified an energy mininization or normal mode algorithm, and "
-                  "these are not compatible with mdrun -rerun");
+                  "these are not compatible with mdrun -rerun and -ererun");
     }
 
     /* NMR restraints must be initialized before load_checkpoint,
@@ -1448,7 +1449,7 @@ int Mdrunner::mdrunner()
                                                          gmx_mtop_ftype_count(mtop, F_ORIRES) > 0,
                                                          haveFrozenAtoms,
                                                          useModularSimulator,
-                                                         doRerun,
+                                                         doRerun || doERerun,
                                                          mdlog);
     }
     GMX_CATCH_ALL_AND_EXIT_WITH_FATAL_ERROR
@@ -1469,7 +1470,7 @@ int Mdrunner::mdrunner()
                                                         useGpuForNonbonded,
                                                         canUseDirectGpuComm,
                                                         useModularSimulator,
-                                                        doRerun,
+                                                        doRerun || doERerun,
                                                         EI_ENERGY_MINIMIZATION(inputrec->eI),
                                                         mdlog);
     }
@@ -2266,7 +2267,7 @@ int Mdrunner::mdrunner()
             if (gpusWereDetected && gmx::needStateGpu(runScheduleWork.simulationWork))
             {
                 GpuApiCallBehavior transferKind =
-                        (inputrec->eI == IntegrationAlgorithm::MD && !doRerun && !useModularSimulator)
+                        (inputrec->eI == IntegrationAlgorithm::MD && !(doRerun || doERerun) && !useModularSimulator)
                                 ? GpuApiCallBehavior::Async
                                 : GpuApiCallBehavior::Sync;
                 GMX_RELEASE_ASSERT(deviceStreamManager != nullptr,

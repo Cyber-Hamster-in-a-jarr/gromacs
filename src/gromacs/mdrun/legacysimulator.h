@@ -77,6 +77,8 @@ private:
     SimulatorFunctionType do_md;
     //! Implements the rerun functionality.
     SimulatorFunctionType do_rerun;
+    //! Implements the ererun functionality.
+    SimulatorFunctionType do_extended_rerun;
     //! Implements steepest descent EM.
     SimulatorFunctionType do_steep;
     //! Implements conjugate gradient energy minimization

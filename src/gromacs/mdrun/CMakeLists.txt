@@ -42,6 +42,7 @@ gmx_add_libgromacs_sources(
     minimize.cpp
     replicaexchange.cpp
     rerun.cpp
+    ererun.cpp
     runner.cpp
     shellfc.cpp
     simulationcontext.cpp

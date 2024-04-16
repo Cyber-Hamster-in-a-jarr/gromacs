@@ -156,6 +156,12 @@ int LegacyMdrunOptions::updateFromCommandLine(int argc, char** argv, ArrayRef<co
     }
 
     mdrunOptions.rerun            = opt2bSet("-rerun", gmx::ssize(filenames), filenames.data());
+    mdrunOptions.ererun           = opt2bSet("-ererun", gmx::ssize(filenames), filenames.data());
+    if (mdrunOptions.rerun && mdrunOptions.ererun)
+    {
+        gmx_fatal(FARGS, "-rerun and -ererun cannot be used at the same time");
+    }
+    
     mdrunOptions.ntompOptionIsSet = opt2parg_bSet("-ntomp", asize(pa), pa);
 
     domdecOptions.rankOrder    = static_cast<DdRankOrder>(nenum(ddrank_opt_choices));

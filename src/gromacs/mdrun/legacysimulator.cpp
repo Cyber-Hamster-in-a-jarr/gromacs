@@ -67,6 +67,10 @@ void LegacySimulator::run()
             {
                 do_rerun();
             }
+            else if (doERerun_)
+            {
+                do_extended_rerun();
+            }            
             else
             {
                 do_md();
@@ -77,6 +81,10 @@ void LegacySimulator::run()
             {
                 do_rerun();
             }
+            else if (doERerun_)
+            {
+                do_extended_rerun();
+            }            
             else
             {
                 do_mimic();

@@ -146,7 +146,8 @@ public:
                         gmx_membed_t*                       membed,
                         gmx_walltime_accounting*            walltime_accounting,
                         std::unique_ptr<StopHandlerBuilder> stopHandlerBuilder,
-                        bool                                doRerun) :
+                        bool                                doRerun, 
+                        bool                                doERerun) :
         fpLog_(fplog),
         cr_(cr),
         ms_(ms),
@@ -183,7 +184,8 @@ public:
         membed_(membed),
         wallTimeAccounting_(walltime_accounting),
         stopHandlerBuilder_(std::move(stopHandlerBuilder)),
-        doRerun_(doRerun)
+        doRerun_(doRerun),
+        doERerun_(doERerun)
     {
     }
 
@@ -261,6 +263,8 @@ public:
     std::unique_ptr<StopHandlerBuilder> stopHandlerBuilder_;
     //! Whether we're doing a rerun.
     bool doRerun_;
+    //! Whether we're doing a extended rerun.
+    bool doERerun_;
 };
 
 } // namespace gmx

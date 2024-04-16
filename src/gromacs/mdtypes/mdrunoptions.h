@@ -101,6 +101,8 @@ struct MdrunOptions
 {
     //! Re-compute energies, and possibly forces, for frames from an input trajectory
     gmx_bool rerun = FALSE;
+    //! Re-compute all energies as in full simulations, for frames from an input trajectory
+    gmx_bool ererun = FALSE;
     //! Re-construct virtual sites durin a rerun simulation
     gmx_bool rerunConstructVsites = FALSE;
     //! Try to make the simulation binary reproducible
