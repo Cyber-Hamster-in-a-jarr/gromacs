@@ -796,7 +796,8 @@ UpdateGroups makeUpdateGroups(const gmx::MDLogger&             mdlog,
                               const real                       maxUpdateGroupRadius,
                               const bool                       useDomainDecomposition,
                               const bool                       systemHasConstraintsOrVsites,
-                              const real                       cutoffMargin)
+                              const real                       cutoffMargin,
+                              const bool                       doERerun)
 {
     GMX_RELEASE_ASSERT(!updateGroupingPerMoleculeType.empty(), "We need the update grouping");
 
@@ -806,6 +807,9 @@ UpdateGroups makeUpdateGroups(const gmx::MDLogger&             mdlog,
 
     messages.appendIf(!useDomainDecomposition,
                       "Domain decomposition is not active, so there is no need for update groups");
+    
+    messages.appendIf(doERerun,
+                      "Update groups not supported by Extended rerun");
 
     messages.appendIf(!systemHasConstraintsOrVsites,
                       "No constraints or virtual sites are in use, so it is best not to use update "

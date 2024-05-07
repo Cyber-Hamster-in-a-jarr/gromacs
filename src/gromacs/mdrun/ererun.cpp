@@ -198,7 +198,7 @@ void gmx::LegacySimulator::do_extended_rerun()
     gmx_bool     /* bNS = FALSE,  bNStList,*/ bStopCM, bFirstStep, bInitStep, bLastStep = FALSE;
     // gmx_bool     bDoExpanded = FALSE;
     gmx_bool     do_ene, do_log, do_verbose;
-    gmx_bool     bMainState;
+    gmx_bool     bMainState = TRUE;
     unsigned int force_flags;
     tensor    force_vir = { { 0 } }, shake_vir = { { 0 } }, total_vir = { { 0 } }, pres = { { 0 } };
     int       i /* m */;
@@ -251,7 +251,7 @@ void gmx::LegacySimulator::do_extended_rerun()
     }
     if (replExParams_.exchangeInterval > 0)
     {
-        gmx_fatal(FARGS, "Replica exchange not supported by rerun.");
+        gmx_fatal(FARGS, "Replica exchange not supported by ererun.");
     }
     if (isMultiSim(ms_))
     {
@@ -849,7 +849,7 @@ void gmx::LegacySimulator::do_extended_rerun()
     if (MAIN(cr_))
     {
         fprintf(stderr,
-                "starting md extended rerun '%s'.\nReading coordinates and velocities from"
+                "Starting md extended rerun '%s'.\nReading coordinates and velocities from"
                 " input trajectory '%s'\nFrames without velocities will be skipped!\n\n",
                 *(topGlobal_.name),
                 opt2fn("-ererun", nFile_, fnm_));
@@ -917,11 +917,7 @@ void gmx::LegacySimulator::do_extended_rerun()
         }
     }
 
-    GMX_LOG(mdLog_.info)
-            .asParagraph()
-            .appendText(
-                    "Rerun does not report kinetic energy, total energy, temperature, virial and "
-                    "pressure.");
+
 
     if (PAR(cr_))
     {
@@ -1145,11 +1141,11 @@ void gmx::LegacySimulator::do_extended_rerun()
         // are updated using these velocities during integration. Those coordinates are used for, e.g., domain
         // decomposition. Before computing any forces the positions of the virtual sites are recalculated.
         // This fixes a bug, #4879, which was introduced in MR !979.
-        const int  c_virtualSiteVelocityUpdateInterval = 1000;
-        const bool needVirtualVelocitiesThisStep =
-                (virtualSites_ != nullptr)
-                && (do_per_step(step, ir->nstvout) /* ||  checkpointHandler->isCheckpointingStep() */
-                    || do_per_step(step, c_virtualSiteVelocityUpdateInterval));
+        // const int  c_virtualSiteVelocityUpdateInterval = 1000;
+        // const bool needVirtualVelocitiesThisStep =
+        //         (virtualSites_ != nullptr)
+        //         && (do_per_step(step, ir->nstvout) /* ||  checkpointHandler->isCheckpointingStep() */
+        //             || do_per_step(step, c_virtualSiteVelocityUpdateInterval));
 
         // if (virtualSites_ != nullptr)
         // {
@@ -1165,17 +1161,17 @@ void gmx::LegacySimulator::do_extended_rerun()
         //     wallcycle_stop(wallCycleCounters_, WallCycleCounter::VsiteConstr);
         // }
 
-        if (bNS && !(bFirstStep && ir->bContinuation))
-        {
-            bMainState = FALSE;
-            /* Correct the new box if it is too skewed */
-            if (inputrecDynamicBox(ir))
-            {
-                if (correct_box(fpLog_, step, state_->box))
-                {
-                    bMainState = TRUE;
-                }
-            }
+        // if (bNS && !(bFirstStep && ir->bContinuation))
+        // {
+            // bMainState = FALSE;
+            // /* Correct the new box if it is too skewed */
+            // if (inputrecDynamicBox(ir))
+            // {
+            //     if (correct_box(fpLog_, step, state_->box))
+            //     {
+                    // bMainState = TRUE;
+            //     }
+            // }
             // If update is offloaded, and the box was changed either
             // above or in a replica exchange on the previous step,
             // the GPU Update object should be informed
@@ -1183,10 +1179,10 @@ void gmx::LegacySimulator::do_extended_rerun()
             {
                 integrator->setPbc(PbcType::Xyz, state_->box);
             }
-            if (haveDDAtomOrdering(*cr_) && bMainState)
-            {
-                dd_collect_state(cr_->dd, state_, stateGlobal_);
-            }
+            // if (haveDDAtomOrdering(*cr_) && bMainState)
+            // {
+            //     dd_collect_state(cr_->dd, state_, stateGlobal_);
+            // }
 
             if (haveDDAtomOrdering(*cr_))
             {
@@ -1215,7 +1211,7 @@ void gmx::LegacySimulator::do_extended_rerun()
                 upd.updateAfterPartition(state_->numAtoms(), md->cFREEZE, md->cTC, md->cACC);
                 fr_->longRangeNonbondeds->updateAfterPartition(*md);
             }
-        }
+        // }
 
         // Allocate or re-size GPU halo exchange object, if necessary
         if (bNS && simulationWork.havePpDomainDecomposition && simulationWork.useGpuHaloExchange)
@@ -1474,56 +1470,56 @@ void gmx::LegacySimulator::do_extended_rerun()
             // if it is the first step after starting from a checkpoint.
             // That is, the half step is needed on all other steps, and
             // also the first step when starting from a .tpr file.
-            if (EI_VV(ir->eI))
-            {
-                integrateVVFirstStep(step,
-                                     bFirstStep,
-                                     bInitStep,
-                                     startingBehavior_,
-                                     nstglobalcomm,
-                                     ir,
-                                     fr_,
-                                     cr_,
-                                     state_,
-                                     mdAtoms_->mdatoms(),
-                                     &fcdata,
-                                     &MassQ,
-                                     &vcm,
-                                     enerd_,
-                                     &observablesReducer,
-                                     ekind_,
-                                     gstat,
-                                     &last_ekin,
-                                     bCalcVir,
-                                     total_vir,
-                                     shake_vir,
-                                     force_vir,
-                                     pres,
-                                     do_log,
-                                     do_ene,
-                                     bCalcEner,
-                                     bGStat,
-                                     bStopCM,
-                                     bTrotter,
-                                     bExchanged,
-                                     &bSumEkinhOld,
-                                     &saved_conserved_quantity,
-                                     &f,
-                                     &upd,
-                                     constr_,
-                                     &nullSignaller,
-                                     trotter_seq,
-                                     nrnb_,
-                                     fpLog_,
-                                     wallCycleCounters_);
-                if (virtualSites_ != nullptr && needVirtualVelocitiesThisStep)
-                {
-                    // Positions were calculated earlier
-                    wallcycle_start(wallCycleCounters_, WallCycleCounter::VsiteConstr);
-                    virtualSites_->construct(state_->x, state_->v, state_->box, VSiteOperation::Velocities);
-                    wallcycle_stop(wallCycleCounters_, WallCycleCounter::VsiteConstr);
-                }
-            }
+            // if (EI_VV(ir->eI))
+            // {
+            //     integrateVVFirstStep(step,
+            //                          bFirstStep,
+            //                          bInitStep,
+            //                          startingBehavior_,
+            //                          nstglobalcomm,
+            //                          ir,
+            //                          fr_,
+            //                          cr_,
+            //                          state_,
+            //                          mdAtoms_->mdatoms(),
+            //                          &fcdata,
+            //                          &MassQ,
+            //                          &vcm,
+            //                          enerd_,
+            //                          &observablesReducer,
+            //                          ekind_,
+            //                          gstat,
+            //                          &last_ekin,
+            //                          bCalcVir,
+            //                          total_vir,
+            //                          shake_vir,
+            //                          force_vir,
+            //                          pres,
+            //                          do_log,
+            //                          do_ene,
+            //                          bCalcEner,
+            //                          bGStat,
+            //                          bStopCM,
+            //                          bTrotter,
+            //                          bExchanged,
+            //                          &bSumEkinhOld,
+            //                          &saved_conserved_quantity,
+            //                          &f,
+            //                          &upd,
+            //                          constr_,
+            //                          &nullSignaller,
+            //                          trotter_seq,
+            //                          nrnb_,
+            //                          fpLog_,
+            //                          wallCycleCounters_);
+            //     if (virtualSites_ != nullptr && needVirtualVelocitiesThisStep)
+            //     {
+            //         // Positions were calculated earlier
+            //         wallcycle_start(wallCycleCounters_, WallCycleCounter::VsiteConstr);
+            //         virtualSites_->construct(state_->x, state_->v, state_->box, VSiteOperation::Velocities);
+            //         wallcycle_stop(wallCycleCounters_, WallCycleCounter::VsiteConstr);
+            //     }
+            // }
 
             /* ########  END FIRST UPDATE STEP  ############## */
             /* ########  If doing VV, we now have v(dt) ###### */
@@ -1986,10 +1982,10 @@ void gmx::LegacySimulator::do_extended_rerun()
                                 &signaller,
                                 lastbox,
                                 &bSumEkinhOld,
-                                (bGStat ? CGLO_GSTAT : 0) | (!EI_VV(ir->eI) && bCalcEner ? CGLO_ENERGY : 0)
+                                (bGStat ? CGLO_GSTAT : 0) | (/*!EI_VV(ir->eI) &&*/ bCalcEner ? CGLO_ENERGY : 0)
                                         | (!EI_VV(ir->eI) && bStopCM ? CGLO_STOPCM : 0)
                                         | (!EI_VV(ir->eI) ? CGLO_TEMPERATURE : 0)
-                                        | (!EI_VV(ir->eI) ? CGLO_PRESSURE : 0) | CGLO_CONSTRAINT,
+                                        | (/*!EI_VV(ir->eI) ?*/ CGLO_PRESSURE /*: 0*/) | CGLO_CONSTRAINT,
                                 step,
                                 &observablesReducer);
                 if (!EI_VV(ir->eI) && bStopCM)

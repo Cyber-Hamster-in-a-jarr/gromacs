@@ -1429,7 +1429,8 @@ int Mdrunner::mdrunner()
                                         maxUpdateGroupRadius,
                                         useDomainDecomposition,
                                         systemHasConstraintsOrVsites(mtop),
-                                        cutoffMargin);
+                                        cutoffMargin,
+                                        doERerun);
     }
 
     try

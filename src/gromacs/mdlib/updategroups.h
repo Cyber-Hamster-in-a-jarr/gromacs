@@ -149,7 +149,8 @@ UpdateGroups makeUpdateGroups(const gmx::MDLogger&             mdlog,
                               real                             maxUpdateGroupRadius,
                               bool                             useDomainDecomposition,
                               bool                             systemHasConstraintsOrVsites,
-                              real                             cutoffMargin);
+                              real                             cutoffMargin,
+                              bool                             doERerun);
 
 } // namespace gmx
 
