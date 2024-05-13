@@ -231,7 +231,7 @@ static void reduce_ilist(gmx::ArrayRef<const int> invindex,
     }
 }
 
-static void reduce_topology_x(int gnx, int index[], gmx_mtop_t* mtop, rvec x[], rvec v[])
+void reduce_topology_x(int gnx, int index[], gmx_mtop_t* mtop, rvec x[], rvec v[])
 {
     gmx_localtop_t top(mtop->ffparams);
     gmx_mtop_generate_local_top(*mtop, &top, false);

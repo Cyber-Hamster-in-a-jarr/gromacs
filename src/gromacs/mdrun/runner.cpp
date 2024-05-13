@@ -954,6 +954,7 @@ int Mdrunner::mdrunner()
     // Objects may or may not be allocated later.
     std::unique_ptr<t_inputrec> inputrec;
     std::unique_ptr<t_state>    globalState;
+    std::unique_ptr<int[]>      ERerunIndex;
 
     auto partialDeserializedTpr = std::make_unique<PartialDeserializedTprFile>();
 
@@ -963,12 +964,14 @@ int Mdrunner::mdrunner()
         /* Only the main rank has the global state */
         globalState = std::make_unique<t_state>();
         inputrec    = std::make_unique<t_inputrec>();
-
+        int* tempERerunIndex = nullptr;
         /* Read (nearly) all data required for the simulation
          * and keep the partly serialized tpr contents to send to other ranks later
          */
         applyGlobalSimulationState(
-                *inputHolder_.get(), partialDeserializedTpr.get(), globalState.get(), inputrec.get(), &mtop);
+                *inputHolder_.get(), partialDeserializedTpr.get(), globalState.get(), inputrec.get(), &mtop, tempERerunIndex, doERerun);
+
+        ERerunIndex.reset(tempERerunIndex);
 
         static_assert(sc_trrMaxAtomCount == sc_checkpointMaxAtomCount);
         if (mtop.natoms > sc_checkpointMaxAtomCount)
@@ -2303,7 +2306,7 @@ int Mdrunner::mdrunner()
             simulatorBuilder.add(CenterOfMassPulling(pull_work));
             // Todo move to an MDModule
             simulatorBuilder.add(IonSwapping(swap));
-            simulatorBuilder.add(TopologyData(mtop, &localTopology, mdAtoms.get()));
+            simulatorBuilder.add(TopologyData(mtop, &localTopology, mdAtoms.get(), ERerunIndex.get()));
             simulatorBuilder.add(BoxDeformationHandle(deform.get()));
             simulatorBuilder.add(std::move(modularSimulatorCheckpointData));
 

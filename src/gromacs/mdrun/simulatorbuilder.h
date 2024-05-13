@@ -300,8 +300,8 @@ class TopologyData
 {
 public:
     //! Build collection from simulation data.
-    TopologyData(const gmx_mtop_t& globalTopology, gmx_localtop_t* localTopology, MDAtoms* mdAtoms) :
-        globalTopology_(globalTopology), localTopology_(localTopology), mdAtoms_(mdAtoms)
+    TopologyData(const gmx_mtop_t& globalTopology, gmx_localtop_t* localTopology, MDAtoms* mdAtoms, int* ERerunInd) :
+        globalTopology_(globalTopology), localTopology_(localTopology), mdAtoms_(mdAtoms), ERerunIndex_(ERerunInd)
     {
     }
 
@@ -311,6 +311,8 @@ public:
     gmx_localtop_t* localTopology_;
     //! Handle to information about MDAtoms.
     MDAtoms* mdAtoms_;
+
+    int* ERerunIndex_;
 };
 
 /*! \brief

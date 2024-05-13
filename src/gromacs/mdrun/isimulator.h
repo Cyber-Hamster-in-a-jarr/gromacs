@@ -131,6 +131,7 @@ public:
                         t_swap*                             swap,
                         const gmx_mtop_t&                   top_global,
                         gmx_localtop_t*                     top,
+                        int*                                ERerunInd,
                         t_state*                            state_global,
                         t_state*                            state,
                         ObservablesHistory*                 observablesHistory,
@@ -169,6 +170,7 @@ public:
         swap_(swap),
         topGlobal_(top_global),
         top_(top),
+        ERerunIndex_(ERerunInd),
         stateGlobal_(state_global),
         state_(state),
         observablesHistory_(observablesHistory),
@@ -231,6 +233,8 @@ public:
     const gmx_mtop_t& topGlobal_;
     //! Handle to local simulation topology.
     gmx_localtop_t* top_;
+
+    int* ERerunIndex_;
     //! Full simulation state (only non-nullptr on main rank).
     t_state* stateGlobal_;
     //! Handle to local state of the simulation.

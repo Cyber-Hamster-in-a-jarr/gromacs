@@ -42,6 +42,12 @@
 #include "gromacs/mdtypes/observableshistory.h"
 #include "gromacs/mdtypes/state.h"
 
+#include "gromacs/topology/atoms.h"
+#include "gromacs/topology/mtop_util.h"
+#include "gromacs/topology/index.h"
+
+void reduce_topology_x(int gnx, int index[], gmx_mtop_t* mtop, rvec x[], rvec v[]);
+
 namespace gmx
 {
 
@@ -49,10 +55,39 @@ void applyGlobalSimulationState(const SimulationInput&      simulationInput,
                                 PartialDeserializedTprFile* partialDeserializedTpr,
                                 t_state*                    globalState,
                                 t_inputrec*                 inputRecord,
-                                gmx_mtop_t*                 molecularTopology)
+                                gmx_mtop_t*                 molecularTopology,
+                                int*&                       ERerunIndex,
+                                bool                        doERerun)
 {
-    *partialDeserializedTpr =
-            read_tpx_state(simulationInput.tprFilename_, inputRecord, globalState, molecularTopology);
+    if (doERerun)
+    {
+        *partialDeserializedTpr =
+                read_tpx_state(simulationInput.tprFilename_, inputRecord, globalState, molecularTopology);
+        t_atoms     atoms         = gmx_mtop_global_atoms(*molecularTopology);
+        int         gnx           = 0;
+        char*       grpname       = nullptr;
+        // const char* indexFilename = haveReadIndexFile_ ? inputIndexFileName_.c_str() : nullptr;
+        get_index(&atoms, nullptr, 1, &gnx, &ERerunIndex, &grpname);
+        bool bSel = (gnx != globalState->numAtoms());
+        for (int i = 0; ((i < gnx) && (!bSel)); i++)
+        {
+            bSel = (i != ERerunIndex[i]);
+        }
+        if (bSel)
+        {
+            reduce_topology_x(gnx, ERerunIndex, molecularTopology, globalState->x.rvec_array(), globalState->v.rvec_array());
+            globalState->changeNumAtoms(gnx);
+        }
+        else
+        {
+            ERerunIndex = nullptr;
+        }
+    }
+    else
+    {
+        *partialDeserializedTpr =
+                read_tpx_state(simulationInput.tprFilename_, inputRecord, globalState, molecularTopology);
+    }            
 }
 
 void applyLocalState(const SimulationInput&         simulationInput,

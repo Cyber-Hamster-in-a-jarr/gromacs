@@ -160,10 +160,37 @@
 using gmx::SimulationSignaller;
 using gmx::VirtualSitesHandler;
 
+static void prepareERerunSubState(const t_trxframe&         rerunFrame,
+                                 t_state*                   globalState,
+                                 bool                       constructVsites,
+                                 const VirtualSitesHandler* vsite,
+                                 int*                       index)
+{
+    auto x      = makeArrayRef(globalState->x);
+    auto rerunX = arrayRefFromArray(reinterpret_cast<gmx::RVec*>(rerunFrame.x), globalState->numAtoms());
+    auto v      = makeArrayRef(globalState->v);
+    auto rerunV = arrayRefFromArray(reinterpret_cast<gmx::RVec*>(rerunFrame.v), globalState->numAtoms());
+    for (int i = 0; i < globalState->numAtoms(); ++i)
+    {
+        x[i] = rerunX[index[i]];
+        v[i] = rerunV[index[i]];
+    }
+    
+    copy_mat(rerunFrame.box, globalState->box);
+
+    if (constructVsites)
+    {
+        GMX_ASSERT(vsite, "Need valid vsite for constructing vsites");
+
+        vsite->construct(globalState->x, globalState->v, globalState->box, gmx::VSiteOperation::PositionsAndVelocities);
+    }
+}
+
 static void prepareERerunState(const t_trxframe&         rerunFrame,
                               t_state*                   globalState,
                               bool                       constructVsites,
-                              const VirtualSitesHandler* vsite)
+                              const VirtualSitesHandler* vsite,
+                              int*)
 {
     auto x      = makeArrayRef(globalState->x);
     auto rerunX = arrayRefFromArray(reinterpret_cast<gmx::RVec*>(rerunFrame.x), globalState->numAtoms());
@@ -180,6 +207,7 @@ static void prepareERerunState(const t_trxframe&         rerunFrame,
         vsite->construct(globalState->x, globalState->v, globalState->box, gmx::VSiteOperation::PositionsAndVelocities);
     }
 }
+
 
 void gmx::LegacySimulator::do_extended_rerun()
 {
@@ -230,6 +258,8 @@ void gmx::LegacySimulator::do_extended_rerun()
     // Most global communnication stages don't propagate mdrun
     // signals, and will use this object to achieve that.
     SimulationSignaller nullSignaller(nullptr, nullptr, nullptr, false, false);
+
+    auto setupERerunState = (ERerunIndex_) ? prepareERerunSubState : prepareERerunState;
    
     GMX_LOG(mdLog_.info)
             .asParagraph()
@@ -885,7 +915,7 @@ void gmx::LegacySimulator::do_extended_rerun()
     if (MAIN(cr_))
     {
         bLastStep = !read_first_frame(oenv_, &status, opt2fn("-ererun", nFile_, fnm_), &rerun_fr, TRX_NEED_X | TRX_NEED_V);
-        if (rerun_fr.natoms != topGlobal_.natoms)
+        if ((rerun_fr.natoms != topGlobal_.natoms) && (ERerunIndex_ == nullptr))
         {
             gmx_fatal(FARGS,
                       "Number of atoms in trajectory (%d) does not match the "
@@ -1072,7 +1102,7 @@ void gmx::LegacySimulator::do_extended_rerun()
                           "decomposition, "
                           "use a single rank");
             }
-            prepareERerunState(rerun_fr, stateGlobal_, constructVsites, virtualSites_);
+            setupERerunState(rerun_fr, stateGlobal_, constructVsites, virtualSites_, ERerunIndex_);
         }
 
         // TODO Refactor this, so that nstfep does not need a default value of zero
