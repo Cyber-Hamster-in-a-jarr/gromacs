@@ -155,6 +155,7 @@ struct gmx_mtop_t //NOLINT(clang-analyzer-optin.performance.Padding)
     std::unique_ptr<InteractionLists> intermolecular_ilist = nullptr;
     //! Number of global atoms.
     int natoms = 0;
+    int natomsInTopologyFile = 0;
     //! Groups of atoms for different purposes
     SimulationGroups groups;
     //! The legacy symbol table

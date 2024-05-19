@@ -3420,6 +3420,30 @@ void write_tpx_state(const std::filesystem::path& fn,
     close_tpx(fio);
 }
 
+
+void reduce_PartialDeserializedTprFile(PartialDeserializedTprFile* partialDeserializedTpr,
+                                       t_inputrec*                 ir,
+                                       t_state*                    state,
+                                       gmx_mtop_t*                 mtop)
+{
+    partialDeserializedTpr->header = populateTpxHeader(*state, ir, mtop);
+    // Long-term we should move to use little endian in files to avoid extra byte swapping,
+    // but since we just used the default XDR format (which is big endian) for the TPR
+    // header it would cause third-party libraries reading our raw data to tear their hair
+    // if we swap the endian in the middle of the file, so we stick to big endian in the
+    // TPR file for now - and thus we ask the serializer to swap if this host is little endian.
+    gmx::InMemorySerializer tprBodySerializer(gmx::EndianSwapBehavior::SwapIfHostIsLittleEndian);
+
+    do_tpx_body(&tprBodySerializer,
+                &partialDeserializedTpr->header,
+                ir,
+                mtop);
+
+    partialDeserializedTpr->body = std::move(tprBodySerializer.finishAndGetBuffer());
+
+    partialDeserializedTpr->pbcType = ir->pbcType;
+}
+
 PbcType completeTprDeserialization(PartialDeserializedTprFile* partialDeserializedTpr,
                                    t_inputrec*                 ir,
                                    t_state*                    state,

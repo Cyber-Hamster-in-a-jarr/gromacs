@@ -117,7 +117,8 @@ void applyGlobalSimulationState(const SimulationInput&      simulationInput,
                                 t_inputrec*                 inputrec,
                                 gmx_mtop_t*                 globalTopology,
                                 int*&                       ERerunIndex,
-                                bool                        doERerun);
+                                bool                        doERerun,
+                                const char*                 indexFilename);
 // TODO: Implement the following, pending further discussion re #3374.
 std::unique_ptr<t_state> globalSimulationState(const SimulationInput&);
 void                     applyGlobalInputRecord(const SimulationInput&, t_inputrec*);

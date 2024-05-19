@@ -161,6 +161,10 @@ int LegacyMdrunOptions::updateFromCommandLine(int argc, char** argv, ArrayRef<co
     {
         gmx_fatal(FARGS, "-rerun and -ererun cannot be used at the same time");
     }
+    if (opt2bSet("-n", gmx::ssize(filenames), filenames.data()) && !mdrunOptions.ererun)
+    {
+        gmx_fatal(FARGS, "Option -n can only be used with -ererun");
+    }
     
     mdrunOptions.ntompOptionIsSet = opt2parg_bSet("-ntomp", asize(pa), pa);
 

@@ -969,7 +969,9 @@ int Mdrunner::mdrunner()
          * and keep the partly serialized tpr contents to send to other ranks later
          */
         applyGlobalSimulationState(
-                *inputHolder_.get(), partialDeserializedTpr.get(), globalState.get(), inputrec.get(), &mtop, tempERerunIndex, doERerun);
+                *inputHolder_.get(), partialDeserializedTpr.get(), globalState.get(), inputrec.get(), &mtop,
+                 tempERerunIndex, doERerun, 
+                 opt2bSet("-n", gmx::ssize(filenames), filenames.data()) ? opt2fn("-n", filenames.size(), filenames.data()) : nullptr);
 
         ERerunIndex.reset(tempERerunIndex);
 

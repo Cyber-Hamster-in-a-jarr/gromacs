@@ -915,13 +915,13 @@ void gmx::LegacySimulator::do_extended_rerun()
     if (MAIN(cr_))
     {
         bLastStep = !read_first_frame(oenv_, &status, opt2fn("-ererun", nFile_, fnm_), &rerun_fr, TRX_NEED_X | TRX_NEED_V);
-        if ((rerun_fr.natoms != topGlobal_.natoms) && (ERerunIndex_ == nullptr))
+        if (rerun_fr.natoms != topGlobal_.natomsInTopologyFile)
         {
             gmx_fatal(FARGS,
                       "Number of atoms in trajectory (%d) does not match the "
                       "run input file (%d)\n",
                       rerun_fr.natoms,
-                      topGlobal_.natoms);
+                      topGlobal_.natomsInTopologyFile);
         }
 
         if (ir->pbcType != PbcType::No)

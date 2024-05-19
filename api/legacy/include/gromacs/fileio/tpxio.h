@@ -236,4 +236,8 @@ gmx_bool fn2bTPX(const std::filesystem::path& file);
 
 void pr_tpxheader(FILE* fp, int indent, const char* title, const TpxFileHeader* sh);
 
+void reduce_PartialDeserializedTprFile(PartialDeserializedTprFile* partialDeserializedTpr,
+                                       t_inputrec*                 ir,
+                                       t_state*                    state,
+                                       gmx_mtop_t*                 mtop);
 #endif

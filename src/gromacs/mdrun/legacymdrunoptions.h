@@ -108,6 +108,7 @@ public:
                                           { efXVG, "-tableb", "table", ffOPTRDMULT },
                                           { efTRX, "-rerun", "rerun", ffOPTRD },
                                           { efTRX, "-ererun", "ererun", ffOPTRD },
+                                          { efNDX, "-n", "index", ffOPTRD },
                                           { efXVG, "-tpi", "tpi", ffOPTWR },
                                           { efXVG, "-tpid", "tpidist", ffOPTWR },
                                           { efEDI, "-ei", "sam", ffOPTRD },
