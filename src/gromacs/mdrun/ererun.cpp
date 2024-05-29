@@ -170,10 +170,12 @@ static void prepareERerunSubState(const t_trxframe&         rerunFrame,
     auto rerunX = arrayRefFromArray(reinterpret_cast<gmx::RVec*>(rerunFrame.x), globalState->numAtoms());
     auto v      = makeArrayRef(globalState->v);
     auto rerunV = arrayRefFromArray(reinterpret_cast<gmx::RVec*>(rerunFrame.v), globalState->numAtoms());
-    for (int i = 0; i < globalState->numAtoms(); ++i)
+    int curentInd = 0, nAtoms = globalState->numAtoms();
+    for (int i = 0; i < nAtoms; ++i)
     {
-        x[i] = rerunX[index[i]];
-        v[i] = rerunV[index[i]];
+        curentInd = index[i];
+        x[i] = rerunX[curentInd];
+        v[i] = rerunV[curentInd];
     }
     
     copy_mat(rerunFrame.box, globalState->box);

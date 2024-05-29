@@ -46,6 +46,8 @@
 #include "gromacs/topology/mtop_util.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/utility/smalloc.h"
+#include "gromacs/tools/reduce_topology_x.h"
 
 void reduce_topology_x(int gnx, int index[], gmx_mtop_t* mtop, rvec x[], rvec v[]);
 
@@ -77,6 +79,11 @@ void applyGlobalSimulationState(const SimulationInput&      simulationInput,
         }
         if (bSel)
         {
+            fprintf(stderr,
+                    "Will recalculate energies for subset %s of original tpx containing %d "
+                    "atoms\n",
+                    grpname,
+                    gnx);
             reduce_topology_x(gnx, ERerunIndex, molecularTopology, globalState->x.rvec_array(), globalState->v.rvec_array());
             globalState->changeNumAtoms(gnx);
             molecularTopology->moleculeBlockIndices.resize(1);
@@ -84,8 +91,11 @@ void applyGlobalSimulationState(const SimulationInput&      simulationInput,
         }
         else
         {
+            sfree(ERerunIndex);
             ERerunIndex = nullptr;
         }
+        sfree(grpname);
+        done_atom(&atoms);
     }
     else
     {

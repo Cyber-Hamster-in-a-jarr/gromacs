@@ -35,6 +35,8 @@
 
 #include "convert_tpr.h"
 
+#include "reduce_topology_x.h"
+
 #include <cmath>
 
 #include <limits>
@@ -257,6 +259,7 @@ void reduce_topology_x(int gnx, int index[], gmx_mtop_t* mtop, rvec x[], rvec v[
 
     mtop->moltype.resize(1);
     mtop->moltype[0].name  = mtop->name;
+    done_atom(&mtop->moltype[0].atoms);
     mtop->moltype[0].atoms = atoms;
     mtop->moltype[0].excls = reduce_listoflists(invindex, bKeep, top.excls, "excls");
     for (int i = 0; i < F_NRE; i++)
