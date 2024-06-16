@@ -166,11 +166,11 @@ static void prepareERerunSubState(const t_trxframe&         rerunFrame,
                                  const VirtualSitesHandler* vsite,
                                  int*                       index)
 {
-    auto x      = makeArrayRef(globalState->x);
-    auto rerunX = arrayRefFromArray(reinterpret_cast<gmx::RVec*>(rerunFrame.x), globalState->numAtoms());
-    auto v      = makeArrayRef(globalState->v);
-    auto rerunV = arrayRefFromArray(reinterpret_cast<gmx::RVec*>(rerunFrame.v), globalState->numAtoms());
     int curentInd = 0, nAtoms = globalState->numAtoms();
+    auto x      = &globalState->x[0];
+    auto rerunX = reinterpret_cast<gmx::RVec*>(rerunFrame.x);
+    auto v      = &globalState->v[0];
+    auto rerunV = reinterpret_cast<gmx::RVec*>(rerunFrame.v);
     for (int i = 0; i < nAtoms; ++i)
     {
         curentInd = index[i];
@@ -602,16 +602,16 @@ void gmx::LegacySimulator::do_extended_rerun()
 
     update_mdatoms(mdAtoms_->mdatoms(), state_->lambda[FreeEnergyPerturbationCouplingType::Mass]);
 
-    if (ir->bExpanded)
-    {
-        /* Check nstexpanded here, because the grompp check was broken */
-        if (ir->expandedvals->nstexpanded % ir->nstcalcenergy != 0)
-        {
-            gmx_fatal(FARGS,
-                      "With expanded ensemble, nstexpanded should be a multiple of nstcalcenergy");
-        }
-        init_expanded_ensemble(startingBehavior_ != StartingBehavior::NewSimulation, ir, state_->dfhist);
-    }
+    // if (ir->bExpanded)
+    // {
+    //     /* Check nstexpanded here, because the grompp check was broken */
+    //     if (ir->expandedvals->nstexpanded % ir->nstcalcenergy != 0)
+    //     {
+    //         gmx_fatal(FARGS,
+    //                   "With expanded ensemble, nstexpanded should be a multiple of nstcalcenergy");
+    //     }
+    //     init_expanded_ensemble(startingBehavior_ != StartingBehavior::NewSimulation, ir, state_->dfhist);
+    // }
 
     if (MAIN(cr_))
     {
