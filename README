@@ -1,4 +1,37 @@
-               Welcome to the official version of GROMACS!
+                             Description
+
+This distribution of GROMACS contains modified version of the mdrun module
+which implement:
+
+* recalculate from trajectories the same number of physical properties as 
+  in productive (full) simulation.
+
+* ability to quickly and conveniently select a separate group of atoms to
+  recalculate energies.
+
+This feature is available in mdrun via the new -ererun option, which, like 
+-rerun, takes a trajectory file containing the atom positions and velocities. 
+Frames without position or velocities will be skipped.
+
+Custom atom indexes can be supplied in the form of a standard index file (.ndx)
+by using the -n option in mdrun.
+
+It's recommended to use this version of -ererun with the trajectory generated
+by the MD integrator, as it gives the best reproducibility.
+
+The following features are not supported with -ererun:
+* Replica exchange
+* Interactive MD
+* Accelerated weighted histogram (AWH)
+* Expanded ensemble
+* GPU update
+* Halo exchange
+* GPU graph
+* Update groups
+
+Work on this distribution is currently suspended.
+
+              Welcome to the official version of GROMACS!
 
 If you are familiar with Unix, it should be fairly trivial to compile and
 install GROMACS. GROMACS uses only the CMake build system, and our
